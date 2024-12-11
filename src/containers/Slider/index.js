@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useData } from "../../contexts/DataContext";
 import { getMonth } from "../../helpers/Date";
 
@@ -7,21 +7,54 @@ import "./style.scss";
 const Slider = () => {
   const { data } = useData();
   const [index, setIndex] = useState(0);
+
+  const [isPaused, setIsPaused] = useState(false);
+  const timeoutRef = useRef(null);
+
   const byDateDesc = data?.focus.sort((evtA, evtB) =>
     new Date(evtA.date) < new Date(evtB.date) ? -1 : 1
   );
-  const nextCard = () => {
-    setTimeout(
 
-      () => setIndex(index < byDateDesc.length - 1 ? index + 1 : 0),
-      // () => setIndex(index < byDateDesc.length ? index + 1 : 0), avant
-      5000
-    );
+  const nextCard = () => {
+    if (!isPaused) {
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = setTimeout(
+        () => setIndex(index < byDateDesc.length - 1 ? index + 1 : 0), 5000
+        // () => setIndex(index < byDateDesc.length ? index + 1 : 0), 5000 avant
+      );
+    }
   };
+
+  const PressEspace = (event) => {
+    if (event.key === " ") {
+      event.preventDefault();
+      setIsPaused(!isPaused);
+
+      if (!isPaused) {
+        nextCard();
+      }
+
+      if (isPaused && timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    }
+  };
+
   useEffect(() => {
     nextCard();
-  });
+    window.addEventListener("keydown", PressEspace);
 
+    return () => {
+      window.removeEventListener("keydown", PressEspace);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [index, isPaused, byDateDesc]);
 
   return (
     <div className="SlideCardList">
